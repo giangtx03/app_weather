@@ -33,10 +33,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.Normalizer;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.PropertyPermission;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
@@ -45,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private EditText cityInput;
     private TextView cityTxt, weatherTxt, timeTxt, tempTxt, cloudTxt, windTxt, humidityTxt, desTxt;
-    private Button searchBtn;
     private ImageView weatherImg;
 
 
@@ -55,8 +57,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initRecyclerView();
-        setVariable();
         cityInput = findViewById(R.id.cityInput);
         cityTxt = findViewById(R.id.cityTxt);
         weatherTxt = findViewById(R.id.weatherTxt);
@@ -66,29 +66,12 @@ public class MainActivity extends AppCompatActivity {
         windTxt = findViewById(R.id.windTxt);
         humidityTxt = findViewById(R.id.humidityTxt);
         desTxt = findViewById(R.id.desTxt);
-        searchBtn = findViewById(R.id.searchBtn);
         weatherImg = findViewById(R.id.weatherImg);
 
-
-        LocalDateTime currentDateTime = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMMM dd | hh:mm a", Locale.ENGLISH);
-        String formattedDateTime = currentDateTime.format(formatter);
-        timeTxt.setText(formattedDateTime);
-
         getCurrentWeather("hanoi");
+        initRecyclerView("hanoi");
+        setVariable();
 
-        searchBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String cityName = convertToEnglish(cityInput.getText().toString());
-
-                if (!cityName.isEmpty()) {
-                    getCurrentWeather(cityName);
-                } else {
-                    Toast.makeText(MainActivity.this, "Vui lòng nhập tên thành phố", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
     }
 
     private void getCurrentWeather(String city){
@@ -96,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
@@ -104,6 +88,11 @@ public class MainActivity extends AppCompatActivity {
                             JSONObject mainObj = response.getJSONObject("main");
                             JSONObject windObj = response.getJSONObject("wind");
                             JSONObject cloudObj = response.getJSONObject("clouds");
+
+                            long timeDt = response.getLong("dt");
+                            LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeDt), ZoneId.systemDefault());
+                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMMM dd | hh:mm a");
+                            timeTxt.setText(dateTime.format(formatter));
 
                             double tempDouble = mainObj.getDouble("temp");
                             int tempInt = (int) Math.round(tempDouble);
@@ -122,8 +111,10 @@ public class MainActivity extends AppCompatActivity {
                                     break;
                                 case "Rain":
                                 case "Drizzle":
-                                case "Thunderstorm":
                                     weatherImg.setImageResource(R.drawable.rainy);
+                                    break;
+                                case "Thunderstorm":
+                                    weatherImg.setImageResource(R.drawable.storm);
                                     break;
                                 case "Snow":
                                     weatherImg.setImageResource(R.drawable.snowy);
@@ -157,23 +148,104 @@ public class MainActivity extends AppCompatActivity {
     private void setVariable() {
         TextView next7dayBtn = findViewById(R.id.nextBtn);
         next7dayBtn.setOnClickListener(view -> startActivity(new Intent(MainActivity.this, FutureActivity.class)));
+        Button  searchBtn = findViewById(R.id.searchBtn);
+        searchBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String cityName = convertToEnglish(cityInput.getText().toString());
+
+                if (!cityName.isEmpty()) {
+                    getCurrentWeather(cityName);
+                    initRecyclerView(cityName);
+
+                    cityInput.setText("");
+                } else {
+                    Toast.makeText(MainActivity.this, "Vui lòng nhập tên thành phố", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
-    private void initRecyclerView() {
+    private void initRecyclerView(String city) {
         ArrayList<Hourly> items = new ArrayList<>();
 
-        items.add(new Hourly("9 pm", 28, "cloudy"));
-        items.add(new Hourly("10 pm", 29, "sunny"));
-        items.add(new Hourly("11 pm", 30, "windy"));
-        items.add(new Hourly("12 pm", 31, "rain"));
-        items.add(new Hourly("1 pm", 32, "storm"));
+        String url = "https://api.openweathermap.org/data/2.5/forecast?q="+ city + "&appid="+ API_KEY +"&units=metric&lang=vi";
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray list = response.getJSONArray("list");
+                            int index = 0;
+                            while(true){
+                                JSONObject itemObj = list.getJSONObject(index);
+                                JSONObject mainObj = itemObj.getJSONObject("main");
+                                JSONObject weatherObj = itemObj.getJSONArray("weather").getJSONObject(0);
 
-        recyclerView = findViewById(R.id.view1);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+                                long timeDt = itemObj.getLong("dt");
+                                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeDt), ZoneId.systemDefault());
 
-        adapterHourly = new HourlyAdapter(items);
-        recyclerView.setAdapter(adapterHourly);
+                                if (dateTime.getDayOfMonth() > LocalDateTime.now().getDayOfMonth()) {
+                                    break;
+                                }
+
+                                double tempDouble = mainObj.getDouble("temp");
+                                int tempInt = (int) Math.round(tempDouble);
+
+                                String picPath = "";
+                                switch (weatherObj.getString("main")){
+                                    case "Clouds":
+                                        picPath = "cloudy_sunny";
+                                        break;
+                                    case "Rain":
+                                    case "Drizzle":
+                                        picPath = "rain";
+                                        break;
+                                    case "Thunderstorm":
+                                        picPath = "storm";
+                                        break;
+                                    case "Snow":
+                                        picPath = "snowy";
+                                        break;
+                                    case "Clear":
+                                        picPath = "sunny";
+                                        break;
+                                    case "Squall":
+                                    case "Tornado":
+                                        picPath = "windy";
+                                        break;
+                                    default:
+                                        picPath = "cloudy";
+                                        break;
+                                }
+
+                                items.add(new Hourly(String.valueOf(dateTime.getHour()) + "h", tempInt, picPath));
+                                index++;
+
+                            }
+
+                            recyclerView = findViewById(R.id.view1);
+                            recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this, LinearLayoutManager.HORIZONTAL, false));
+
+                            adapterHourly = new HourlyAdapter(items);
+                            recyclerView.setAdapter(adapterHourly);
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "" + error.toString(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+        requestQueue.add(jsonObjectRequest);
+
     }
+
     private String convertToEnglish(String input) {
         String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
