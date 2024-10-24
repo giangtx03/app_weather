@@ -66,13 +66,13 @@
                                 android:id="@+id/textView15"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Tommorow"
+                                android:text="Today"
                                 android:textAlignment="textStart"
                                 android:textColor="@color/white"
                                 android:textSize="20sp" />
 
                             <TextView
-                                android:id="@+id/textView14"
+                                android:id="@+id/tempTomTxt"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -83,7 +83,7 @@
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/textView13"
+                                android:id="@+id/weatherTomTxt"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="Mostly Cloudy"
@@ -112,10 +112,10 @@
                                 android:layout_width="34dp"
                                 android:layout_height="34dp"
                                 android:layout_gravity="center"
-                                android:src="@drawable/rain" />
+                                android:src="@drawable/cloudy" />
 
                             <TextView
-                                android:id="@+id/textView5"
+                                android:id="@+id/cloudTxt"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="22%"
@@ -127,7 +127,7 @@
                                 android:id="@+id/textView6"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Rain"
+                                android:text="Cloudiness"
                                 android:textAlignment="center"
                                 android:textColor="@color/white" />
                         </LinearLayout>
@@ -147,7 +147,7 @@
                                 android:src="@drawable/windy" />
 
                             <TextView
-                                android:id="@+id/textView7"
+                                android:id="@+id/windTxt"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="22%"
@@ -179,7 +179,7 @@
                                 android:src="@drawable/humidity" />
 
                             <TextView
-                                android:id="@+id/textView9"
+                                android:id="@+id/humidityTxt"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="18%"

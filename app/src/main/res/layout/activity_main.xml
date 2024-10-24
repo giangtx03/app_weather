@@ -143,7 +143,7 @@
                             android:id="@+id/textView6"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Clouds"
+                            android:text="Cloudiness"
                             android:textAlignment="center"
                             android:textColor="@color/white" />
                     </LinearLayout>
@@ -244,7 +244,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="24dp"
-                    android:text="Next 7 days"
+                    android:text="Next 5 days"
                     android:textColor="@color/text_color"
                     android:textSize="20sp"
                     android:textStyle="bold" />

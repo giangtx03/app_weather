@@ -50,12 +50,14 @@ public class MainActivity extends AppCompatActivity {
     private TextView cityTxt, weatherTxt, timeTxt, tempTxt, cloudTxt, windTxt, humidityTxt, desTxt;
     private ImageView weatherImg;
 
-
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Intent intent = getIntent();
+        String city = intent.getStringExtra("city");
+
 
         cityInput = findViewById(R.id.cityInput);
         cityTxt = findViewById(R.id.cityTxt);
@@ -68,14 +70,37 @@ public class MainActivity extends AppCompatActivity {
         desTxt = findViewById(R.id.desTxt);
         weatherImg = findViewById(R.id.weatherImg);
 
-        getCurrentWeather("hanoi");
-        initRecyclerView("hanoi");
-        setVariable();
+        if(city != null) {
+            getCurrentWeather(city);
+            initRecyclerView(city);
+            setVariable(city);
+        }
+        else{
+            getCurrentWeather("hanoi");
+            initRecyclerView("hanoi");
+            setVariable("hanoi");
+        }
 
+        Button  searchBtn = findViewById(R.id.searchBtn);
+        searchBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String cityName = convertToEnglish(cityInput.getText().toString());
+
+                if (!cityName.isEmpty()) {
+                    getCurrentWeather(cityName);
+                    initRecyclerView(cityName);
+                    setVariable(cityName);
+                    cityInput.setText("");
+                } else {
+                    Toast.makeText(MainActivity.this, "Vui lòng nhập tên thành phố", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void getCurrentWeather(String city){
-        String url = "https://api.openweathermap.org/data/2.5/weather?q="+ city + "&appid="+ API_KEY +"&units=metric&lang=vi";
+        String url = "https://api.openweathermap.org/data/2.5/weather?q="+ city + ",vn&appid="+ API_KEY +"&units=metric&lang=en";
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
@@ -101,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
                             weatherTxt.setText(weatherObj.getString("main"));
                             tempTxt.setText(tempInt + "°C");
                             humidityTxt.setText(mainObj.getString("humidity") + "%");
-                            windTxt.setText(windObj.getString("deg") + "%");
+                            windTxt.setText(windObj.getString("speed") + "m/s");
                             cloudTxt.setText(cloudObj.getString("all") + "%");
                             desTxt.setText(weatherObj.getString("description"));
 
@@ -145,31 +170,19 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(jsonObjectRequest);
     }
 
-    private void setVariable() {
+    private void setVariable(String city) {
         TextView next7dayBtn = findViewById(R.id.nextBtn);
-        next7dayBtn.setOnClickListener(view -> startActivity(new Intent(MainActivity.this, FutureActivity.class)));
-        Button  searchBtn = findViewById(R.id.searchBtn);
-        searchBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String cityName = convertToEnglish(cityInput.getText().toString());
-
-                if (!cityName.isEmpty()) {
-                    getCurrentWeather(cityName);
-                    initRecyclerView(cityName);
-
-                    cityInput.setText("");
-                } else {
-                    Toast.makeText(MainActivity.this, "Vui lòng nhập tên thành phố", Toast.LENGTH_SHORT).show();
-                }
-            }
+        next7dayBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, FutureActivity.class);
+            intent.putExtra("city", city);
+            startActivity(intent);
         });
     }
 
     private void initRecyclerView(String city) {
         ArrayList<Hourly> items = new ArrayList<>();
 
-        String url = "https://api.openweathermap.org/data/2.5/forecast?q="+ city + "&appid="+ API_KEY +"&units=metric&lang=vi";
+        String url = "https://api.openweathermap.org/data/2.5/forecast?q="+ city + ",vn&appid="+ API_KEY +"&units=metric&lang=en";
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
@@ -186,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 long timeDt = itemObj.getLong("dt");
                                 LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeDt), ZoneId.systemDefault());
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("h a");
 
                                 if (dateTime.getDayOfMonth() > LocalDateTime.now().getDayOfMonth()) {
                                     break;
@@ -221,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
                                         break;
                                 }
 
-                                items.add(new Hourly(String.valueOf(dateTime.getHour()) + "h", tempInt, picPath));
+                                items.add(new Hourly(dateTime.format(formatter), tempInt, picPath));
                                 index++;
 
                             }
